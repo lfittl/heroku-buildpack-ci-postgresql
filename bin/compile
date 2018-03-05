@@ -84,5 +84,6 @@ echo "-----> Copying .profile.d/pg.sh to add postgresql binaries to PATH"
 mkdir -p $BUILD_DIR/.profile.d
 cat<<\EOF > $BUILD_DIR/.profile.d/pg-path.sh
 PATH=$HOME/vendor/postgresql/bin:$PATH
+EOF
 
 echo "-----> postgresql done"
