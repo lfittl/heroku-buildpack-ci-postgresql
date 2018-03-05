@@ -18,7 +18,7 @@ LP_DIR=`cd $(dirname $0); cd ..; pwd`
 BUILDPACK_DIR="$(dirname $(dirname $0))"
 
 # config
-S3_BUCKET="ci-database-binary"
+S3_BUCKET="heroku-postgres-10-3-update"
 POSTGRESQL_MAJOR_VERSION=10
 if [ -f "$ENV_DIR/POSTGRESQL_VERSION" ]
 then
@@ -26,7 +26,7 @@ then
 fi
 
 case "$POSTGRESQL_MAJOR_VERSION" in
-  10)  POSTGRESQL_VERSION="10.1";;
+  10)  POSTGRESQL_VERSION="10.3";;
   9.6) POSTGRESQL_VERSION="9.6.6";;
   *)   POSTGRESQL_VERSION="$POSTGRESQL_MAJOR_VERSION";;
 esac
@@ -79,43 +79,10 @@ echo "-----> Fetching and vendoring postgresql into slug"
 mkdir -p "$BUILD_DIR/$VENDORED_POSTGRESQL"
 package_download "postgresql" "${POSTGRESQL_VERSION}" "${BUILD_DIR}/${VENDORED_POSTGRESQL}" "${STACK}"
 
-echo "-----> Initializing database"
-export PGHOST=/tmp
-DATABASE=postgres_buildpack_db
-
-# Set up and configure a database for Heroku CI
-user="u$(</dev/urandom tr -dc 'a-z0-9' | head -c 13)"
-password="p$(</dev/urandom tr -dc 'a-z0-9' | head -c 64)"
-
-export PGDATA=$BUILD_DIR/vendor/postgresql/data
-initdb | indent
-pg_ctl -l .pg.log -w start | indent
-psql -c "CREATE USER ${user} WITH SUPERUSER ENCRYPTED PASSWORD '${password}'" postgres | indent
-createdb --owner $user $DATABASE | indent
-DATABASE_URL="postgres://${user}:${password}@localhost:5432/${DATABASE}"
-# N.B.: we do not stop the server here because some buildpacks rely on
-# having a live database at DATABASE_URL in order to run the build
-
-echo "export PGHOST=$PGHOST" >> $BUILDPACK_DIR/export
-echo "export DATABASE_URL=$DATABASE_URL" >> $BUILDPACK_DIR/export
-
 # setting .profile.d script for database startup
 echo "-----> Copying .profile.d/pg.sh to add postgresql binaries to PATH"
 mkdir -p $BUILD_DIR/.profile.d
 cat<<\EOF > $BUILD_DIR/.profile.d/pg-path.sh
 PATH=$HOME/vendor/postgresql/bin:$PATH
-
-export PGHOST=/tmp
-export PGDATA=$HOME/vendor/postgresql/data
-
-if ! pg_ctl status >/dev/null;
-then
-  pg_ctl -l .pg.log -w start
-fi
-EOF
-
-cat<<EOF > $BUILD_DIR/.profile.d/pg-env.sh
-export DATABASE_URL="$DATABASE_URL"
-EOF
 
 echo "-----> postgresql done"
