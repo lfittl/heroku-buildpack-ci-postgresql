@@ -1,23 +1,7 @@
-**Warning** this is an experimental buildpack and is provided as-is without any
-promise of support.
+This solely exists as a temporary measure to fix the following error when using pg_restore inside a Heroku dyno:
 
-# Heroku CI buildpack: Postgresql
+```
+pg_restore: [archiver] unsupported version (1.13) in file header 
+```
 
-This experimental [Heroku buildpack](http://devcenter.heroku.com/articles/buildpacks)
-vendors Postgresql into the dyno. It is intended for use with Heroku CI or any
-other environment where data retention is not important.
-
-Please note that Postgresql will lose all data each time a dyno restarts.
-
-## Usage
-
-This is intended to be transparent to your application. Connect to the database
-in the same way as you would for [Heroku Postgresql](https://www.heroku.com/postgres)
-by reading the value of the `DATABASE_URL` environment variable into your application.
-
-By default, the buildpack provides the latest Postgres version that is
-generally available on Heroku. You can specify a `POSTGRESQL_VERSION`
-in the `env` section of your
-[app.json](https://devcenter.heroku.com/articles/heroku-ci#environment-variables-env-key)
-to use a different major (e.g., "10" or "9.6") version. This feature
-is experimental and subject to change.
+This is caused by Heroku updating the pg:backups infrastructure to 10.3 (which has a version bump on the pg_dump/pg_restore custom format due to security reasons), whilst sadly not having updated the Heroku Dynos yet, which are still stuck on 10.1 at the time of writing.
